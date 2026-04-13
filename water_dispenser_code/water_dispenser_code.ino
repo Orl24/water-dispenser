@@ -1,3 +1,24 @@
+/* WIFI part */
+#define BLYNK_PRINT Serial
+
+#define BLYNK_TEMPLATE_ID "TMPLaMBC74-X"
+#define BLYNK_TEMPLATE_NAME "NodeMCU"
+#define BLYNK_AUTH_TOKEN "YourAuthToken"
+
+#include <BlynkSimpleEsp8266.h>
+#include <ESP8266WiFi.h>
+
+// You should get Auth Token in the Blynk App.
+// Go to the Project Settings (nut icon).
+char auth[] = "YourAuthToken"; //maybe can get rid of this one
+
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "Habets";
+char pass[] = "pephabet1228";
+
+/***************************/
+
 int pin2 = 2; //Light
 int pin5 = 5; //GPIO 5
 
@@ -27,9 +48,20 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(pin2, OUTPUT);
   pinMode(pin5, OUTPUT);
+
+  // Debug console
+  Serial.begin(9600);
+
+  Blynk.begin(auth, ssid, pass);
 }
 
 void loop() {
+  Blynk.run();      //keeps your device connected to the Blynk IoT and processes everything in real time. helps reconnect.
+
+  // val=1024-analogRead(yl69_pin);     // reads analogue value like the moisture sensor, then minus 1024 to invert the value to make it easier to understand
+  // Serial.println(val);               // Sends the value to Serial Monitor
+  //Blynk.virtualWrite(V1, (int)val);   // Sends the value to Blynk IoT app. V1 means virtual pin 1
+
   // put your main code here, to run repeatedly:
   if(TEST_MOTOR == 0)
   {
