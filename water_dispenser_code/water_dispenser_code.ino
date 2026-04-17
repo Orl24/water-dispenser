@@ -18,14 +18,17 @@ char ssid[] = "Habets";
 char pass[] = "pephabet1228";
 
 /***************************/
+/*********************************************/
+//COMMUNICATION
+double FIVE_SECONDS = 50;
+/*********************************************/
 
 int pin2 = 2; //Light
 int pin5 = 5; //GPIO 5
 
-double thirty_mins = 1800; 
-
 /*********************************************/
 // Adjust these only
+double thirty_mins = 1800; 
 double time_in_seconds = thirty_mins; //set how often to dispense water
 double DISPENSE_LENGTH = 25; // 10 = 1 second - how long to dispense the water
 // 20 = 5cc
@@ -36,6 +39,8 @@ double WHEN_TO_DISPENSE_SECONDS = time_in_seconds * 10; //10 = 1 second so need 
 
 double dispense_counter = 0;
 double dispense_time_counter = 0;
+double remaining_time = 0;
+double communicate_remaining_time_to_dispense = 0;
 
 double LIGHT_SWITCH_TIME = 10;
 double light_counter_on = 0;
@@ -69,9 +74,16 @@ void dispense_water_function() {
   else
   {
     digitalWrite(pin5, LOW);  // OFF - pump
-    dispense_counter = 0;
-    dispense_time_counter = 0;
-    if(V3_FLAG == 1) V3_FLAG = 0; // reset dispense now flag
+    if(V3_FLAG == 1)
+    {
+      V3_FLAG = 0; // reset dispense now flag
+      dispense_time_counter = 0;
+    }
+    else
+    {
+      dispense_counter = 0;
+      dispense_time_counter = 0;
+    }
     Blynk.virtualWrite(V1, int(++dispenses_triggered));
   }
 }
@@ -109,6 +121,13 @@ void loop() {
     {
       //function to dispense water
       dispense_water_function();
+    }
+    //calculate remaining time
+    remaining_time = (WHEN_TO_DISPENSE_SECONDS - dispense_counter)/10;
+    if(++communicate_remaining_time_to_dispense >= FIVE_SECONDS)
+    {
+      Blynk.virtualWrite(V5, int(++remaining_time));
+      communicate_remaining_time_to_dispense = 0;
     }
   }
   
