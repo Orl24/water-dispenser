@@ -30,7 +30,7 @@ int pin5 = 5; //GPIO 5
 // Adjust these only
 double thirty_mins = 1800; 
 double time_in_seconds = thirty_mins; //set how often to dispense water
-double DISPENSE_LENGTH = 25; // 10 = 1 second - how long to dispense the water
+int DISPENSE_LENGTH = 25; // 10 = 1 second - how long to dispense the water
 // 20 = 5cc
 // 30 = 15cc
 /*********************************************/
@@ -109,11 +109,13 @@ void loop() {
   // Serial.println(val);               // Sends the value to Serial Monitor
   //Blynk.virtualWrite(V1, (int)val);   // Sends the value to Blynk IoT app. V1 means virtual pin 1
 
+  // dispense now
   if(V3_FLAG == 1)
   {
     dispense_water_function();
   }  
 
+  // disable/enable function
   if(V2_FLAG == 1)
   {
     // track dispense counter
@@ -126,9 +128,13 @@ void loop() {
     remaining_time = (WHEN_TO_DISPENSE_SECONDS - dispense_counter)/10;
     if(++communicate_remaining_time_to_dispense >= FIVE_SECONDS)
     {
-      Blynk.virtualWrite(V5, int(++remaining_time));
+      Blynk.virtualWrite(V5, int(remaining_time));
       communicate_remaining_time_to_dispense = 0;
     }
+  }
+  else
+  {
+    digitalWrite(pin5, LOW);  // OFF - pump
   }
   
   // test motor
@@ -147,6 +153,13 @@ void loop() {
   delay(100); // loop once every 0.1 second
 }
 
+// Dispense frequency
+BLYNK_WRITE(V0) {
+    int value = param.asInt();
+    if(value <= 1) value = 1; // minimum is every 10 seconds
+    WHEN_TO_DISPENSE_SECONDS = value * 60 * 10; // *60 for seconds, *10 for count value in code
+}
+
 // enable / disable function
 BLYNK_WRITE(V2) {
   bool value = param.asInt();
@@ -156,4 +169,11 @@ BLYNK_WRITE(V2) {
 // dispense now
 BLYNK_WRITE(V3) {
     V3_FLAG = 1;
+}
+
+// Dispense duration
+BLYNK_WRITE(V4) {
+    int value = param.asInt();
+    DISPENSE_LENGTH = value;
+    //Blynk.virtualWrite(V6, int(DISPENSE_LENGTH)); // used for debugging
 }
