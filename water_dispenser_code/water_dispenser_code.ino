@@ -1,3 +1,5 @@
+/*EEPROM part*/
+#include <EEPROM.h>
 /* WIFI part */
 #define BLYNK_PRINT Serial
 
@@ -18,9 +20,10 @@ char ssid[] = "Habets";
 char pass[] = "pephabet1228";
 
 /***************************/
+#define EEPROM_MAGIC 12345
 /*********************************************/
 //COMMUNICATION
-double FIVE_SECONDS = 50;
+int FIVE_SECONDS = 50;
 /*********************************************/
 
 int pin2 = 2; //Light
@@ -28,26 +31,31 @@ int pin5 = 5; //GPIO 5
 
 /*********************************************/
 // Adjust these only
-double thirty_mins = 1800; 
-double time_in_seconds = thirty_mins; //set how often to dispense water
+int thirty_mins = 1800; 
+int time_in_seconds = thirty_mins; //set how often to dispense water
 int DISPENSE_LENGTH = 25; // 10 = 1 second - how long to dispense the water
 // 20 = 5cc
 // 30 = 15cc
 /*********************************************/
+int WHEN_TO_DISPENSE_SECONDS = time_in_seconds * 10; //10 = 1 second so need to * 10
 
-double WHEN_TO_DISPENSE_SECONDS = time_in_seconds * 10; //10 = 1 second so need to * 10
+int DISPENSE_LENGTH_OLD = 0;
+int WHEN_TO_DISPENSE_SECONDS_OLD = 0;
 
-double dispense_counter = 0;
-double dispense_time_counter = 0;
-double remaining_time = 0;
-double communicate_remaining_time_to_dispense = 0;
+int dispense_counter = 0;
+int dispense_time_counter = 0;
+int remaining_time = 0;
+int communicate_remaining_time_to_dispense = 0;
 
-double LIGHT_SWITCH_TIME = 10;
-double light_counter_on = 0;
-double light_counter_off = 0;
+int LIGHT_SWITCH_TIME = 10;
+int light_counter_on = 0;
+int light_counter_off = 0;
 
-double DISPENSE_TIME = 2000;
+int DISPENSE_TIME = 2000;
 int dispenses_triggered = 0;
+
+int save_settings_counter = 0;
+int SAVE_SETTINGS_FREQUENCY = 600; // check to save once every 60 seconds
 
 //flags
 bool TEST_MOTOR = 0;
@@ -61,6 +69,33 @@ void setup() {
 
   // Debug console
   Serial.begin(9600);
+  delay(3000);
+  // EEPROM
+  EEPROM.begin(512);
+  
+  // debugging
+  // int test1, test2;
+  // EEPROM.get(0, test1);
+  // EEPROM.get(10, test2);
+
+  // Serial.println("Address 0 and 10 :");
+  // Serial.println(test1);
+  // Serial.println(test2);
+
+  // check if first time getting memory
+  int magic;
+  EEPROM.get(100, magic);
+  if (magic != EEPROM_MAGIC)
+  {
+    saveSettings();
+    EEPROM.put(100, EEPROM_MAGIC);
+  }
+  else
+  {
+    loadSettings();
+    DISPENSE_LENGTH_OLD = DISPENSE_LENGTH;
+    WHEN_TO_DISPENSE_SECONDS_OLD = WHEN_TO_DISPENSE_SECONDS;
+  }
 
   Blynk.begin(auth, ssid, pass);
 }
@@ -88,9 +123,28 @@ void dispense_water_function() {
   }
 }
 
+void saveSettings() {
+  if(DISPENSE_LENGTH_OLD != DISPENSE_LENGTH)
+  {
+    EEPROM.put(0, DISPENSE_LENGTH);           //Dispense duration
+    DISPENSE_LENGTH_OLD = DISPENSE_LENGTH;
+    EEPROM.commit();
+  }
+  if(WHEN_TO_DISPENSE_SECONDS_OLD != WHEN_TO_DISPENSE_SECONDS)
+  {
+    EEPROM.put(10, WHEN_TO_DISPENSE_SECONDS); //Frequency
+    WHEN_TO_DISPENSE_SECONDS_OLD = WHEN_TO_DISPENSE_SECONDS;
+    EEPROM.commit();
+  }
+}
+
+void loadSettings() {
+  EEPROM.get(0, DISPENSE_LENGTH);           //Dispense duration
+  EEPROM.get(10, WHEN_TO_DISPENSE_SECONDS); //Frequency
+}
+
 void loop() {
   Blynk.run();      //keeps your device connected to the Blynk IoT and processes everything in real time. helps reconnect.
-
   //light on and off
   if(++light_counter_on <= LIGHT_SWITCH_TIME)
   {
@@ -105,9 +159,12 @@ void loop() {
       light_counter_on = 0;
   }
 
-  // val=1024-analogRead(yl69_pin);     // reads analogue value like the moisture sensor, then minus 1024 to invert the value to make it easier to understand
-  // Serial.println(val);               // Sends the value to Serial Monitor
-  //Blynk.virtualWrite(V1, (int)val);   // Sends the value to Blynk IoT app. V1 means virtual pin 1
+  // Check when to save
+  if(++save_settings_counter >= SAVE_SETTINGS_FREQUENCY)
+  {
+    saveSettings();
+    save_settings_counter = 0;
+  }
 
   // dispense now
   if(V3_FLAG == 1)
@@ -158,6 +215,7 @@ BLYNK_WRITE(V0) {
     int value = param.asInt();
     if(value <= 1) value = 1; // minimum is every 10 seconds
     WHEN_TO_DISPENSE_SECONDS = value * 60 * 10; // *60 for seconds, *10 for count value in code
+    dispense_counter = 0; // reset counter
 }
 
 // enable / disable function
