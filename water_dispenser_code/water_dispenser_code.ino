@@ -23,7 +23,7 @@ char pass[] = "pephabet1228";
 #define EEPROM_MAGIC 12345
 /*********************************************/
 //COMMUNICATION
-int FIVE_SECONDS = 50;
+int SEND_DISPENSE_COUNTDOWN_TIME = 200;
 /*********************************************/
 
 int pin2 = 2; //Light
@@ -33,7 +33,7 @@ int pin5 = 5; //GPIO 5
 // Adjust these only
 int thirty_mins = 1800; 
 int time_in_seconds = thirty_mins; //set how often to dispense water
-int DISPENSE_LENGTH = 25; // 10 = 1 second - how long to dispense the water
+int DISPENSE_LENGTH = 20; // 10 = 1 second - how long to dispense the water
 // 20 = 5cc
 // 30 = 15cc
 /*********************************************/
@@ -183,7 +183,7 @@ void loop() {
     }
     //calculate remaining time
     remaining_time = (WHEN_TO_DISPENSE_SECONDS - dispense_counter)/10;
-    if(++communicate_remaining_time_to_dispense >= FIVE_SECONDS)
+    if(++communicate_remaining_time_to_dispense >= SEND_DISPENSE_COUNTDOWN_TIME)
     {
       Blynk.virtualWrite(V5, int(remaining_time));
       communicate_remaining_time_to_dispense = 0;
